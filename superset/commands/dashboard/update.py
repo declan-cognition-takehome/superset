@@ -183,11 +183,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             return [tab for tab in current_tabs["all_tabs"] if tab not in position]
 
         def find_reports_containing_tabs(tabs: list[str]) -> list[ReportSchedule]:
-            alert_reports_list = []
+            reports: dict[int, ReportSchedule] = {}
             for tab in tabs:
                 for report in ReportScheduleDAO.find_by_extra_metadata(tab):
-                    alert_reports_list.append(report)
-            return alert_reports_list
+                    if report.dashboard_id == self._model.id:  # type: ignore
+                        reports.setdefault(report.id, report)
+            return list(reports.values())
 
         def send_deactivated_email_warning(report: ReportSchedule) -> None:
             description = textwrap.dedent(
