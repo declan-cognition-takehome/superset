@@ -661,8 +661,9 @@ class ChartDataRestApi(ChartRestApi):
             return self.response_422(message=sanitize_error_message(exc.message))
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=sanitize_error_message(exc.message))
+        except QueryObjectValidationError as exc:
+            return self.response_400(message=sanitize_error_message(exc.message))
 
-            # Log is_cached if extra payload callback is provided
         materialized_result = result.materialize()
         if add_extra_log_payload and materialized_result.get("queries"):
             is_cached_values = [
