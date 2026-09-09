@@ -185,7 +185,10 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         def find_reports_containing_tabs(tabs: list[str]) -> list[ReportSchedule]:
             alert_reports_list = []
             for tab in tabs:
-                for report in ReportScheduleDAO.find_by_extra_metadata(tab):
+                for report in ReportScheduleDAO.find_by_extra_metadata(
+                    tab,
+                    dashboard_id=self._model.id,  # type: ignore
+                ):
                     alert_reports_list.append(report)
             return alert_reports_list
 

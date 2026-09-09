@@ -64,6 +64,20 @@ def test_find_by_extra_metadata_returns_matching_reports(
     assert results[0].name == "match"
 
 
+def test_find_by_extra_metadata_scopes_to_dashboard(
+    session: Session,
+) -> None:
+    extra = json.dumps({"dashboard_tab_ids": ["TAB-abc123"]})
+    _create_report(session, "same-dashboard", extra_json=extra).dashboard_id = 1
+    _create_report(session, "other-dashboard", extra_json=extra).dashboard_id = 2
+    _create_report(session, "no-dashboard", extra_json=extra)
+    session.flush()
+
+    results = ReportScheduleDAO.find_by_extra_metadata("TAB-abc123", dashboard_id=1)
+
+    assert [report.name for report in results] == ["same-dashboard"]
+
+
 def test_find_by_extra_metadata_returns_empty_when_no_match(
     session: Session,
 ) -> None:

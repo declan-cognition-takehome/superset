@@ -66,6 +66,7 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
         },
     )
     model = MagicMock()
+    model.id = 1
     type(model).tabs = PropertyMock(
         return_value={"all_tabs": {"TAB-1": "First", "TAB-2": "Second"}}
     )
@@ -77,6 +78,7 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
         report_dao.find_by_extra_metadata.return_value = [report]
         command.process_tab_diff()
 
-    # TAB-2 is gone from the new layout, TAB-1 is not.
-    report_dao.find_by_extra_metadata.assert_called_once_with("TAB-2")
+    # TAB-2 is gone from the new layout, TAB-1 is not. Only reports attached
+    # to the dashboard being edited are considered.
+    report_dao.find_by_extra_metadata.assert_called_once_with("TAB-2", dashboard_id=1)
     report_dao.update.assert_called_once_with(report, {"active": False})

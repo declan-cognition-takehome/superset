@@ -158,12 +158,19 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         )
 
     @staticmethod
-    def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
-        return (
-            db.session.query(ReportSchedule)
-            .filter(ReportSchedule.extra_json.contains(slug, autoescape=True))
-            .all()
+    def find_by_extra_metadata(
+        slug: str, dashboard_id: int | None = None
+    ) -> list[ReportSchedule]:
+        """
+        searches extra_json for a substring, optionally restricted to the
+        reports attached to a single dashboard
+        """
+        query = db.session.query(ReportSchedule).filter(
+            ReportSchedule.extra_json.contains(slug, autoescape=True)
         )
+        if dashboard_id is not None:
+            query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
+        return query.all()
 
     @staticmethod
     def find_by_native_filter_id(native_filter_id: str) -> list[ReportSchedule]:
