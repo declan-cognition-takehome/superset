@@ -54,6 +54,8 @@ const MOCK_CHART_DATA_RESULT = [
         sum__num: 1506025,
       },
     ],
+    rowcount: 4,
+    sql_rowcount: 1000,
   },
   {
     colnames: ['gender', 'year', 'count'],
@@ -70,6 +72,8 @@ const MOCK_CHART_DATA_RESULT = [
         count: 2000,
       },
     ],
+    rowcount: 2,
+    sql_rowcount: 500,
   },
 ];
 
@@ -82,6 +86,15 @@ test('Displays results table for 1 query', () => {
   expect(screen.getByText('name')).toBeInTheDocument();
   expect(screen.getByText('sum__num')).toBeInTheDocument();
   expect(screen.getByText('Michael')).toBeInTheDocument();
+});
+
+test('Displays rowcount rather than sql_rowcount', () => {
+  const { result } = renderHook(() =>
+    useResultsTableView(MOCK_CHART_DATA_RESULT.slice(0, 1), '1__table', true),
+  );
+  render(result.current, { useRedux: true });
+  expect(screen.getByText('4 rows')).toBeInTheDocument();
+  expect(screen.queryByText('1000 rows')).not.toBeInTheDocument();
 });
 
 test('Displays results for 2 queries', async () => {
