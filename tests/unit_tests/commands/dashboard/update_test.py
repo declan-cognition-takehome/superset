@@ -66,12 +66,15 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
         },
     )
     model = MagicMock()
+    model.id = 1
     type(model).tabs = PropertyMock(
         return_value={"all_tabs": {"TAB-1": "First", "TAB-2": "Second"}}
     )
     command._model = model  # noqa: SLF001
 
     report = MagicMock()
+    report.id = 10
+    report.dashboard_id = 1
     report.editors = []
     with patch("superset.commands.dashboard.update.ReportScheduleDAO") as report_dao:
         report_dao.find_by_extra_metadata.return_value = [report]
@@ -80,3 +83,43 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
     # TAB-2 is gone from the new layout, TAB-1 is not.
     report_dao.find_by_extra_metadata.assert_called_once_with("TAB-2")
     report_dao.update.assert_called_once_with(report, {"active": False})
+
+
+def test_process_tab_diff_only_touches_reports_of_the_edited_dashboard(
+    app_context: None,
+) -> None:
+    """Reports on other dashboards must not be deactivated by a tab removal.
+
+    `find_by_extra_metadata` is a substring scan over `extra_json`, so it can
+    return reports attached to any dashboard; only those belonging to the
+    dashboard being updated may be deactivated, and each only once.
+    """
+    command = UpdateDashboardCommand(
+        1,
+        {
+            "position_json": json.dumps(
+                {"ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": []}}
+            )
+        },
+    )
+    model = MagicMock()
+    model.id = 1
+    type(model).tabs = PropertyMock(
+        return_value={"all_tabs": {"TAB-1": "First", "TAB-2": "Second"}}
+    )
+    command._model = model  # noqa: SLF001
+
+    own_report = MagicMock()
+    own_report.id = 10
+    own_report.dashboard_id = 1
+    own_report.editors = []
+    other_report = MagicMock()
+    other_report.id = 20
+    other_report.dashboard_id = 2
+    other_report.editors = []
+    with patch("superset.commands.dashboard.update.ReportScheduleDAO") as report_dao:
+        report_dao.find_by_extra_metadata.return_value = [own_report, other_report]
+        command.process_tab_diff()
+
+    assert report_dao.find_by_extra_metadata.call_count == 2
+    report_dao.update.assert_called_once_with(own_report, {"active": False})
