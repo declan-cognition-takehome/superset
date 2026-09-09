@@ -42,6 +42,7 @@ from superset.common.chart_data_timing import (
 from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
+from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import ExtraCache
 from superset.models.core import Database
 from superset.utils import json
@@ -1302,6 +1303,25 @@ def test_get_data_response_forwards_slice_to_chart_response(
         api._get_data_response(command, slice_=chart)
 
     assert mock_send.call_args.kwargs["slice_"] is chart
+
+
+def test_get_data_response_returns_400_on_query_object_validation_error(
+    app: SupersetApp,
+) -> None:
+    """
+    QueryObjectValidationError raised from command.execute() outside the
+    per-query try/except (e.g. ensure_totals_available or a drill detail
+    preparer) must map to HTTP 400 rather than an unhandled 500.
+    """
+    command = MagicMock()
+    command.execute.side_effect = QueryObjectValidationError("Invalid query object")
+    api = ChartDataRestApi()
+
+    with app.test_request_context("/api/v1/chart/data"):
+        response = api._get_data_response(command)
+
+    assert response.status_code == 400
+    assert response.json["message"] == "Invalid query object"
 
 
 def test_get_data_route_passes_loaded_chart_to_data_response(
